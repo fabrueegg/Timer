@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Timer">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Timer</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #16181d; --muted: #646b78; --line: #dfe2e7;
+    --btn: #eceef2; --btn-text: #16181d; --primary: #2563eb; --primary-text: #fff;
+    --warn: #d97706; --warn-bg: #fff7e6; --done: #dc2626; --done-bg: #fdecec; --ok: #16a34a;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 1px 8px rgba(0,0,0,.04);
+    --c1: #2563eb; --c2: #16a34a; --c3: #d97706; --c4: #dc2626;
+    --c5: #7c3aed; --c6: #db2777; --c7: #0d9488; --c8: #64748b;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --card: #1d2026; --text: #eceef2; --muted: #9aa1ad; --line: #2e323a;
+      --btn: #2a2e36; --btn-text: #eceef2; --primary: #3b82f6;
+      --warn: #f59e0b; --warn-bg: #2d2412; --done: #f87171; --done-bg: #331b1b; --ok: #22c55e;
+      --shadow: none;
+      --c1: #60a5fa; --c2: #4ade80; --c3: #fbbf24; --c4: #f87171;
+      --c5: #a78bfa; --c6: #f472b6; --c7: #2dd4bf; --c8: #94a3b8;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 12px 14px 40px; }
+  .hidden { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 8px; padding: 6px 0 12px; position: sticky; top: 0;
+    background: var(--bg); z-index: 5; }
+  header h1 { font-size: 22px; margin: 0; flex: 1; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--done); }
+
+  button { font: inherit; border: 0; border-radius: 10px; padding: 10px 14px; background: var(--btn);
+    color: var(--btn-text); cursor: pointer; min-height: 44px; touch-action: manipulation; }
+  button:active { transform: scale(.97); }
+  button.primary { background: var(--primary); color: var(--primary-text); font-weight: 600; }
+  button.danger { color: var(--done); }
+  button.icon { min-width: 44px; padding: 10px; font-size: 18px; line-height: 1; }
+  button.on { outline: 2px solid var(--primary); }
+  button:disabled { opacity: .5; }
+
+  .banner { background: var(--warn-bg); color: var(--text); border-radius: 10px; padding: 10px 14px;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .banner span { flex: 1; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 14px 12px 18px;
+    position: relative; overflow: hidden; border: 2px solid transparent; }
+  .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--accent); }
+  .card.warn { border-color: var(--warn); background: var(--warn-bg); }
+  .card.done { border-color: var(--done); background: var(--done-bg); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { border-color: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .card.done { animation: none; } }
+  .top { display: flex; align-items: baseline; gap: 8px; }
+  .name { font-weight: 650; font-size: 18px; flex: 1; overflow-wrap: anywhere; }
+  .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+  .time { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.5px; margin: 4px 0 2px; }
+  .card.done .time { color: var(--done); } .card.warn .time { color: var(--warn); }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .card.warn .bar > i { background: var(--warn); } .card.done .bar > i { background: var(--done); }
+  .info { color: var(--muted); font-size: 14px; margin: 6px 0 10px; min-height: 20px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .actions button { flex: 1 1 auto; }
+  .editbar { display: flex; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .editbar button { flex: 1; }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+  details.hist { margin-top: 20px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 4px 14px; }
+  details.hist summary { padding: 10px 0; cursor: pointer; font-weight: 600; }
+  .hist ul { list-style: none; margin: 0; padding: 0 0 10px; }
+  .hist li { padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; display: flex; gap: 10px; }
+  .hist li time { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  dialog { border: 0; border-radius: 16px; padding: 0; width: min(460px, calc(100vw - 24px));
+    background: var(--card); color: var(--text); box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlg { padding: 18px; max-height: calc(100vh - 60px); overflow: auto; }
+  .dlg h2 { margin: 0 0 12px; font-size: 20px; }
+  .dlg h3 { margin: 18px 0 6px; font-size: 16px; }
+  label.f { display: block; margin: 12px 0 4px; font-size: 14px; color: var(--muted); }
+  input[type=text], input[type=number], input[type=password] { font: inherit; width: 100%; padding: 10px 12px;
+    border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); min-height: 44px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > div { flex: 1; } .row small { color: var(--muted); }
+  .seg { display: flex; gap: 6px; }
+  .seg label { flex: 1; text-align: center; padding: 10px; border-radius: 10px; background: var(--btn); cursor: pointer; }
+  .seg input { display: none; }
+  .seg input:checked + span { font-weight: 700; color: var(--primary); }
+  .seg label:has(input:checked) { outline: 2px solid var(--primary); }
+  .check { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+  .check input { width: 22px; height: 22px; }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatches label { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+  .swatches input { display: none; }
+  .swatches input:checked + label { border-color: var(--text); }
+  .btns { display: flex; gap: 8px; margin-top: 18px; } .btns button { flex: 1; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .qr { background: #fff; padding: 10px; border-radius: 10px; display: inline-block; margin-top: 6px; }
+  .qr svg, .qr img { display: block; width: 180px; height: 180px; }
+  code.box { display: block; word-break: break-all; background: var(--bg); padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+
+  .login { max-width: 380px; margin: 12vh auto 0; background: var(--card); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+  .login h1 { margin: 0 0 6px; font-size: 22px; }
+  .err { color: var(--done); font-size: 14px; min-height: 20px; margin-top: 8px; }
+
+  #toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px;
+    opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 90vw; z-index: 50; }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ============ Login (nur wenn kein Code vorhanden/gültig) ============ -->
+<div id="loginView" class="hidden">
+  <form class="login" id="loginForm">
+    <h1>Timer</h1>
+    <p class="hint">Zugangscode eingeben oder den QR-Code mit dem Link scannen.</p>
+    <label class="f" for="loginCode">Zugangscode</label>
+    <input type="password" id="loginCode" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    <div class="err" id="loginErr"></div>
+    <div class="btns"><button class="primary" type="submit">Öffnen</button></div>
+  </form>
+</div>
+
+<!-- ============ Dashboard ============ -->
+<div id="appView" class="wrap hidden">
+  <header>
+    <h1><span class="dot" id="syncDot" title="Verbindung"></span>Timer</h1>
+    <button class="icon" id="btnSound" title="Ton ein/aus" aria-label="Ton ein/aus">🔔</button>
+    <button class="icon" id="btnEdit" title="Bearbeiten" aria-label="Bearbeitungsmodus">✎</button>
+    <button class="icon" id="btnSettings" title="Einstellungen" aria-label="Einstellungen">⚙</button>
+    <button class="primary" id="btnAdd" aria-label="Timer hinzufügen">+ Neu</button>
+  </header>
+
+  <div class="banner hidden" id="soundBanner">
+    <span>Ton ist eingeschaltet, aber noch blockiert. Einmal tippen, um ihn freizugeben.</span>
+    <button id="btnUnlock">Freigeben</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty hidden" id="empty">Noch keine Timer. Mit «+ Neu» den ersten anlegen.</div>
+
+  <details class="hist" id="hist">
+    <summary>Verlauf</summary>
+    <ul id="histList"></ul>
+  </details>
+</div>
+
+<!-- ============ Timer-Formular ============ -->
+<dialog id="dlgTimer">
+  <form class="dlg" id="timerForm" method="dialog">
+    <h2 id="timerTitle">Neuer Timer</h2>
+    <label class="f" for="fName">Name</label>
+    <input type="text" id="fName" maxlength="60" required>
+
+    <label class="f">Dauer</label>
+    <div class="row">
+      <div><input type="number" id="fH" min="0" max="167" inputmode="numeric" value="0"><small>Std.</small></div>
+      <div><input type="number" id="fM" min="0" max="59" inputmode="numeric" value="10"><small>Min.</small></div>
+      <div><input type="number" id="fS" min="0" max="59" inputmode="numeric" value="0"><small>Sek.</small></div>
+    </div>
+
+    <label class="f" for="fWarn">Vorwarnung (Minuten vor Ablauf, 0 = aus)</label>
+    <input type="number" id="fWarn" min="0" max="1440" inputmode="numeric" value="0">
+
+    <label class="f">Nach Ablauf</label>
+    <div class="seg">
+      <label><input type="radio" name="fAuto" value="0" checked><span>Warten (manuell)</span></label>
+      <label><input type="radio" name="fAuto" value="1"><span>Automatisch neu</span></label>
+    </div>
+
+    <label class="check"><input type="checkbox" id="fNtfy" checked> Push-Nachricht über ntfy senden</label>
+
+    <label class="f">Farbe</label>
+    <div class="swatches" id="fColors"></div>
+
+    <div class="err" id="timerErr"></div>
+    <div class="btns">
+      <button type="button" id="timerCancel">Abbrechen</button>
+      <button type="submit" class="primary" id="timerSave">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ============ Einstellungen ============ -->
+<dialog id="dlgSettings">
+  <div class="dlg">
+    <h2>Einstellungen</h2>
+
+    <h3>Push-Alarm (ntfy)</h3>
+    <p class="hint">App «ntfy» installieren und dieses Thema abonnieren. Dann klingelt es auch bei gesperrtem Handy.</p>
+    <code class="box" id="ntfyTopic">–</code>
+    <div class="btns">
+      <button type="button" id="btnNtfyCopy">Thema kopieren</button>
+      <button type="button" id="btnNtfyOpen">Im Browser ansehen</button>
+    </div>
+    <div class="qr" id="qrNtfy"></div>
+
+    <h3>Dashboard teilen</h3>
+    <p class="hint">Wer diesen Link oder QR-Code hat, kann alle Timer bedienen.</p>
+    <div class="qr" id="qrShare"></div>
+    <div class="btns"><button type="button" id="btnShareCopy">Link kopieren</button></div>
+
+    <h3>Dieses Gerät</h3>
+    <label class="check"><input type="checkbox" id="optVibrate" checked> Vibration bei Alarm (Android)</label>
+    <label class="check"><input type="checkbox" id="optWake"> Bildschirm wach halten</label>
+    <div class="btns">
+      <button type="button" id="btnTestSound">Ton testen</button>
+      <button type="button" class="danger" id="btnLogout">Abmelden</button>
+    </div>
+
+    <div class="btns"><button type="button" class="primary" id="settingsClose">Schliessen</button></div>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+'use strict';
+/* =====================================================================
+   KONFIGURATION – diese zwei Werte aus Supabase eintragen
+   (Project Settings → API Keys). Der Zugangscode gehört NICHT hierher.
+   ===================================================================== */
+const SUPABASE_URL = 'https://gknjtmhtimzbyswzyija.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YQ-JXdlspvzJoQ8H5mwXWQ_UsClr0Ek';
+/* ===================================================================== */
+
+const POLL_MS = 15000;          // Rückfall-Aktualisierung, falls Live-Sync fehlt
+const STORE = 'td_';            // Präfix für lokale Einstellungen
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(STORE + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(STORE + k, JSON.stringify(v)); } catch {} },
+  del(k)    { try { localStorage.removeItem(STORE + k); } catch {} }
+};
+
+let sb = null, channel = null, secret = null;
+let state = { timers: [], history: [], topic: null, server: 'https://ntfy.sh' };
+let offset = 0;                 // Serverzeit − Gerätezeit (ms)
+let lastOk = 0, rtOk = false, editMode = false, editingId = null;
+const alarmed = new Set();      // bereits ausgelöste Alarme (pro Zyklusende)
+const loadedAt = Date.now();
+
+/* ---------------- Hilfsfunktionen ---------------- */
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;          // nur textContent: kein HTML aus Daten
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'style') e.style.cssText = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids) if (c) e.append(c);
+  return e;
+}
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2600); }
+const now = () => Date.now() + offset;
+const parseTs = s => s ? Date.parse(String(s).replace(/(\.\d{3})\d+/, '$1')) : null;
+function fmt(sec) {
+  sec = Math.max(0, Math.ceil(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  const p = n => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+}
+function fmtDur(sec) {
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return [h && h + ' h', m && m + ' min', s && s + ' s'].filter(Boolean).join(' ') || '0 s';
+}
+const clock = ms => new Date(ms).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+function stamp(ms) {
+  const d = new Date(ms), t = new Date();
+  const same = d.toDateString() === t.toDateString();
+  return same ? clock(ms) : d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' }) + ' ' + clock(ms);
+}
+function hashStr(str, seed) {   // cyrb53 – nur für den Kanalnamen
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/* ---------------- Zeitlogik eines Timers ---------------- */
+// liefert: { phase: stopped|running|paused|done, rem (s), end (ms|null), passedEnd (ms|null) }
+function view(t) {
+  const dur = t.duration_s, n = now();
+  if (t.status === 'paused') return { phase: 'paused', rem: Number(t.remaining_s) || 0, end: null };
+  if (t.status === 'stopped') return { phase: 'stopped', rem: dur, end: null };
+  const raw = parseTs(t.ends_at);
+  if (t.status === 'done' || raw === null) return { phase: 'done', rem: 0, end: raw, passedEnd: raw };
+  if (n < raw) return { phase: 'running', rem: (raw - n) / 1000, end: raw };
+  if (!t.auto_restart) return { phase: 'done', rem: 0, end: raw, passedEnd: raw };
+  const k = Math.floor((n - raw) / (dur * 1000)) + 1;          // Auto-Neustart: aktueller Zyklus
+  const end = raw + k * dur * 1000;
+  return { phase: 'running', rem: (end - n) / 1000, end, passedEnd: end - dur * 1000 };
+}
+
+/* ---------------- Ton & Vibration ---------------- */
+let actx = null;
+function audioReady() { return actx && actx.state === 'running'; }
+function unlockAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state !== 'running') actx.resume();
+  } catch {}
+  setTimeout(updateSoundUi, 150);
+}
+function beep(times, freq) {
+  if (!store.get('sound', true) || !audioReady()) return;
+  const t0 = actx.currentTime;
+  for (let i = 0; i < times; i++) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine'; o.frequency.value = freq;
+    const s = t0 + i * 0.45;
+    g.gain.setValueAtTime(0.0001, s);
+    g.gain.exponentialRampToValueAtTime(0.5, s + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, s + 0.3);
+    o.connect(g).connect(actx.destination); o.start(s); o.stop(s + 0.32);
+  }
+}
+function vibrate(p) { if (store.get('vibrate', true) && navigator.vibrate) try { navigator.vibrate(p); } catch {} }
+function alarmDone()  { beep(4, 880); vibrate([300, 150, 300, 150, 300]); }
+function alarmWarn()  { beep(1, 660); vibrate(200); }
+function updateSoundUi() {
+  const on = store.get('sound', true);
+  $('btnSound').textContent = on ? '🔔' : '🔕';
+  $('soundBanner').classList.toggle('hidden', !on || audioReady());
+}
+
+/* ---------------- Bildschirm wach halten ---------------- */
+let wakeLock = null;
+async function applyWake() {
+  try {
+    if (store.get('wake', false) && 'wakeLock' in navigator && document.visibilityState === 'visible') {
+      if (!wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    } else if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch { wakeLock = null; }
+}
+
+/* ---------------- Supabase ---------------- */
+async function rpc(fn, args = {}) {
+  const { data, error } = await sb.rpc(fn, { p_secret: secret, ...args });
+  if (error) {
+    if (error.code === '28000' || /Zugang verweigert/.test(error.message || '')) { const e = new Error('Zugangscode ungültig'); e.auth = true; throw e; }
+    throw new Error(error.message || 'Fehler');
+  }
+  return data;
+}
+async function refresh() {
+  const t0 = Date.now();
+  const data = await rpc('td_state');
+  const t1 = Date.now();
+  offset = parseTs(data.now) - (t0 + t1) / 2;
+  state = { timers: data.timers || [], history: data.history || [], topic: data.ntfy_topic, server: data.ntfy_server || 'https://ntfy.sh' };
+  lastOk = Date.now();
+  render();
+}
+async function safeRefresh() {
+  try { await refresh(); } catch (e) { if (e.auth) return logout('Zugangscode ungültig'); updateDot(); }
+}
+async function act(fn, args, okMsg) {
+  try { await rpc(fn, args); await refresh(); broadcast(); if (okMsg) toast(okMsg); }
+  catch (e) { if (e.auth) return logout('Zugangscode ungültig'); toast('Fehler: ' + e.message); }
+}
+function broadcast() { if (channel && rtOk) channel.send({ type: 'broadcast', event: 'changed', payload: {} }).catch(() => {}); }
+function connectRealtime() {
+  const name = 'td-' + hashStr(secret, 1) + hashStr(secret, 2);
+  channel = sb.channel(name, { config: { broadcast: { self: false } } })
+    .on('broadcast', { event: 'changed' }, () => safeRefresh())
+    .subscribe(status => { rtOk = status === 'SUBSCRIBED'; updateDot(); });
+}
+function updateDot() {
+  const fresh = Date.now() - lastOk < POLL_MS * 2.2;
+  $('syncDot').className = 'dot ' + (fresh ? 'ok' : 'bad');
+  $('syncDot').title = fresh ? (rtOk ? 'Live verbunden' : 'Verbunden (ohne Live-Sync)') : 'Keine Verbindung';
+}
+
+/* ---------------- Darstellung ---------------- */
+const cards = new Map();   // id → { root, time, bar, info, actions, last }
+function render() {
+  const grid = $('grid');
+  const ids = new Set(state.timers.map(t => t.id));
+  for (const [id, c] of cards) if (!ids.has(id)) { c.root.remove(); cards.delete(id); }
+  state.timers.forEach((t, i) => {
+    let c = cards.get(t.id);
+    if (!c) { c = buildCard(); cards.set(t.id, c); }
+    c.t = t; c.idx = i; c.sig = null;
+    fillCardStatic(c, t, i);
+    grid.append(c.root);      // Reihenfolge übernehmen
+  });
+  $('empty').classList.toggle('hidden', state.timers.length > 0);
+  renderHistory();
+  tick();
+  updateDot();
+}
+function buildCard() {
+  const c = {};
+  c.name = el('div', { class: 'name' });
+  c.tags = el('div', { class: 'row', style: 'gap:6px;flex:0 0 auto' });
+  c.time = el('div', { class: 'time' });
+  c.barFill = el('i');
+  c.info = el('div', { class: 'info' });
+  c.actions = el('div', { class: 'actions' });
+  c.editbar = el('div', { class: 'editbar' });
+  c.root = el('div', { class: 'card' }, el('div', { class: 'top' }, c.name, c.tags), c.time,
+    el('div', { class: 'bar' }, c.barFill), c.info, c.actions, c.editbar);
+  return c;
+}
+function fillCardStatic(c, t, i) {
+  c.root.style.setProperty('--accent', `var(--c${t.color || 1})`);
+  c.name.textContent = t.name;
+  c.tags.replaceChildren(...[
+    t.auto_restart && el('span', { class: 'tag', text: '↻ auto' }),
+    t.ntfy && el('span', { class: 'tag', text: 'Push' })].filter(Boolean));
+  c.editbar.replaceChildren();
+  c.editbar.classList.toggle('hidden', !editMode);
+  if (editMode) {
+    const del = el('button', { class: 'danger', text: 'Löschen' });
+    del.addEventListener('click', () => {
+      if (del.dataset.armed) return act('td_delete', { p_id: t.id }, 'Gelöscht');
+      del.dataset.armed = '1'; del.textContent = 'Sicher?';
+      setTimeout(() => { delete del.dataset.armed; del.textContent = 'Löschen'; }, 3000);
+    });
+    c.editbar.append(
+      el('button', { class: 'icon', text: '↑', 'aria-label': 'nach oben', onclick: () => act('td_move', { p_id: t.id, p_dir: -1 }) }),
+      el('button', { class: 'icon', text: '↓', 'aria-label': 'nach unten', onclick: () => act('td_move', { p_id: t.id, p_dir: 1 }) }),
+      el('button', { text: 'Bearbeiten', onclick: () => openForm(t) }),
+      del);
+    c.editbar.firstChild.disabled = i === 0;
+    c.editbar.children[1].disabled = i === state.timers.length - 1;
+  }
+}
+function actionsFor(c, phase) {
+  const t = c.t, a = name => () => act('td_action', { p_id: t.id, p_action: name });
+  const b = (label, name, primary) => el('button', { class: primary ? 'primary' : '', text: label, onclick: a(name) });
+  switch (phase) {
+    case 'stopped': return [b('Start', 'start', true)];
+    case 'running': return [b('Pause', 'pause'), b('Neustart', 'restart'), b('Reset', 'reset')];
+    case 'paused':  return [b('Weiter', 'resume', true), b('Neustart', 'restart'), b('Reset', 'reset')];
+    case 'done':    return [b('Neustart', 'restart', true), b('Reset', 'reset')];
+  }
+  return [];
+}
+function tick() {
+  const n = now();
+  for (const c of cards.values()) {
+    const t = c.t, v = view(t), dur = t.duration_s;
+    const warn = v.phase === 'running' && t.prewarn_s > 0 && v.rem <= t.prewarn_s;
+    c.root.classList.toggle('warn', warn);
+    c.root.classList.toggle('done', v.phase === 'done');
+    c.time.textContent = fmt(v.rem);
+    c.barFill.style.width = (v.phase === 'stopped' ? 0 : v.phase === 'done' ? 100 : (1 - v.rem / dur) * 100).toFixed(1) + '%';
+
+    let info;
+    if (v.phase === 'running') info = `läuft · fertig um ${clock(v.end)}` + (t.auto_restart ? ' · danach neu' : '');
+    else if (v.phase === 'paused') info = `pausiert · Dauer ${fmtDur(dur)}`;
+    else if (v.phase === 'stopped') info = `bereit · Dauer ${fmtDur(dur)}`;
+    else { const since = v.passedEnd ? Math.max(0, Math.floor((n - v.passedEnd) / 60000)) : 0;
+           info = since < 1 ? 'FERTIG · jetzt Aktion ausführen' : `FERTIG seit ${since} min`; }
+    if (c.info.textContent !== info) c.info.textContent = info;
+
+    const sig = v.phase + '|' + editMode;           // Buttons nur bei Phasenwechsel neu bauen
+    if (c.sig !== sig) { c.actions.replaceChildren(...actionsFor(c, v.phase)); c.sig = sig; }
+
+    // lokale Alarme (nur wenn das Ereignis während offener Seite passiert, max. 60 s zurück)
+    if (v.passedEnd && v.passedEnd > loadedAt && n - v.passedEnd < 60000) {
+      const key = t.id + '@' + v.passedEnd;
+      if (!alarmed.has(key)) { alarmed.add(key); alarmDone(); }
+    }
+    if (warn && v.end) {
+      const wp = v.end - t.prewarn_s * 1000, key = t.id + '#' + v.end;
+      if (wp > loadedAt && n - wp < 60000 && !alarmed.has(key)) { alarmed.add(key); alarmWarn(); }
+    }
+  }
+}
+function renderHistory() {
+  const items = state.history.map(h => el('li', {},
+    el('time', { text: stamp(parseTs(h.at)) }),
+    el('span', {}, el('b', { text: h.timer_name }), document.createTextNode(' – ' + h.action))));
+  $('histList').replaceChildren(...(items.length ? items : [el('li', { text: 'Noch keine Einträge.' })]));
+}
+
+/* ---------------- Timer-Formular ---------------- */
+(function buildSwatches() {
+  const box = $('fColors');
+  for (let i = 1; i <= 8; i++) {
+    const id = 'col' + i;
+    box.append(el('input', { type: 'radio', name: 'fColor', id, value: String(i) }),
+               el('label', { for: id, style: `background:var(--c${i})`, 'aria-label': 'Farbe ' + i }));
+  }
+})();
+function openForm(t) {
+  editingId = t ? t.id : null;
+  $('timerTitle').textContent = t ? 'Timer bearbeiten' : 'Neuer Timer';
+  const d = t ? t.duration_s : 600;
+  $('fName').value = t ? t.name : '';
+  $('fH').value = Math.floor(d / 3600); $('fM').value = Math.floor(d % 3600 / 60); $('fS').value = d % 60;
+  $('fWarn').value = t ? Math.round(t.prewarn_s / 60) : 0;
+  document.querySelector(`input[name=fAuto][value="${t && t.auto_restart ? 1 : 0}"]`).checked = true;
+  $('fNtfy').checked = t ? t.ntfy : true;
+  const col = t ? t.color : ((state.timers.length % 8) + 1);
+  $('col' + col).checked = true;
+  $('timerErr').textContent = '';
+  $('dlgTimer').showModal();
+  if (!t) setTimeout(() => $('fName').focus(), 50);
+}
+$('timerCancel').onclick = () => $('dlgTimer').close();
+$('timerForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const name = $('fName').value.trim();
+  const dur = (+$('fH').value || 0) * 3600 + (+$('fM').value || 0) * 60 + (+$('fS').value || 0);
+  const warn = Math.max(0, Math.round((+$('fWarn').value || 0) * 60));
+  if (!name) return $('timerErr').textContent = 'Bitte einen Namen eingeben.';
+  if (dur < 10) return $('timerErr').textContent = 'Die Dauer muss mindestens 10 Sekunden sein.';
+  if (dur > 604800) return $('timerErr').textContent = 'Die Dauer darf höchstens 7 Tage sein.';
+  if (warn >= dur) return $('timerErr').textContent = 'Die Vorwarnung muss kürzer als die Dauer sein.';
+  $('timerSave').disabled = true;
+  try {
+    await rpc('td_save', {
+      p_id: editingId, p_name: name, p_duration_s: Math.round(dur), p_prewarn_s: warn,
+      p_auto: document.querySelector('input[name=fAuto]:checked').value === '1',
+      p_ntfy: $('fNtfy').checked,
+      p_color: +(document.querySelector('input[name=fColor]:checked') || { value: 1 }).value });
+    $('dlgTimer').close();
+    await refresh(); broadcast(); toast('Gespeichert');
+  } catch (e) { if (e.auth) return logout('Zugangscode ungültig'); $('timerErr').textContent = 'Fehler: ' + e.message; }
+  finally { $('timerSave').disabled = false; }
+});
+
+/* ---------------- Einstellungen ---------------- */
+function qrInto(node, text) {
+  node.replaceChildren();
+  if (!window.qrcode) { node.append(el('span', { text: 'QR nicht verfügbar' })); return; }
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  const img = el('img', { alt: 'QR-Code', src: q.createDataURL(6, 2) });
+  node.append(img);
+}
+const shareLink = () => location.origin + location.pathname + '#' + secret;
+const ntfyWeb = () => state.server.replace(/\/$/, '') + '/' + state.topic;
+async function copy(text, msg) {
+  try { await navigator.clipboard.writeText(text); toast(msg); }
+  catch { prompt('Kopieren:', text); }
+}
+$('btnSettings').onclick = () => {
+  $('ntfyTopic').textContent = state.topic || '–';
+  if (state.topic) qrInto($('qrNtfy'), ntfyWeb());
+  qrInto($('qrShare'), shareLink());
+  $('optVibrate').checked = store.get('vibrate', true);
+  $('optWake').checked = store.get('wake', false);
+  $('dlgSettings').showModal();
+};
+$('settingsClose').onclick = () => $('dlgSettings').close();
+$('btnNtfyCopy').onclick = () => state.topic && copy(state.topic, 'Thema kopiert');
+$('btnNtfyOpen').onclick = () => { if (state.topic) window.open(ntfyWeb(), '_blank', 'noopener'); };
+$('btnShareCopy').onclick = () => copy(shareLink(), 'Link kopiert');
+$('optVibrate').onchange = e => store.set('vibrate', e.target.checked);
+$('optWake').onchange = e => { store.set('wake', e.target.checked); applyWake(); };
+$('btnTestSound').onclick = () => { unlockAudio(); setTimeout(alarmDone, 200); };
+$('btnLogout').onclick = () => { $('dlgSettings').close(); logout(); };
+
+/* ---------------- Kopfzeile ---------------- */
+$('btnAdd').onclick = () => openForm(null);
+$('btnEdit').onclick = () => { editMode = !editMode; $('btnEdit').classList.toggle('on', editMode); render(); };
+$('btnSound').onclick = () => { const on = !store.get('sound', true); store.set('sound', on); if (on) unlockAudio(); updateSoundUi(); toast(on ? 'Ton an' : 'Ton aus'); };
+$('btnUnlock').onclick = unlockAudio;
+document.addEventListener('pointerdown', () => { if (store.get('sound', true) && !audioReady()) unlockAudio(); }, { capture: true });
+
+/* ---------------- Start / Login ---------------- */
+function logout(msg) {
+  store.del('secret'); secret = null;
+  if (channel) { sb.removeChannel(channel); channel = null; }
+  history.replaceState(null, '', location.pathname + location.search);
+  $('appView').classList.add('hidden'); $('loginView').classList.remove('hidden');
+  $('loginErr').textContent = msg || '';
+}
+async function start(code) {
+  secret = code;
+  try { await refresh(); }
+  catch (e) { logout(e.auth ? 'Zugangscode ungültig' : 'Keine Verbindung: ' + e.message); return; }
+  store.set('secret', code);
+  if (location.hash.slice(1) !== code) history.replaceState(null, '', '#' + code);
+  $('loginView').classList.add('hidden'); $('appView').classList.remove('hidden');
+  connectRealtime();
+  updateSoundUi(); applyWake();
+}
+$('loginForm').addEventListener('submit', ev => { ev.preventDefault(); start($('loginCode').value.trim()); });
+
+(function init() {
+  if (!window.supabase || SUPABASE_URL.includes('DEINPROJEKT')) {
+    $('loginView').classList.remove('hidden');
+    $('loginErr').textContent = !window.supabase ? 'Supabase-Bibliothek konnte nicht geladen werden.' : 'SUPABASE_URL und SUPABASE_KEY in der HTML-Datei eintragen.';
+    return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const code = decodeURIComponent(location.hash.slice(1)).trim() || store.get('secret', '');
+  if (code) start(code); else $('loginView').classList.remove('hidden');
+  setInterval(tick, 250);
+  setInterval(() => { if (secret && document.visibilityState === 'visible') safeRefresh(); }, POLL_MS);
+  setInterval(updateDot, 5000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && secret) { safeRefresh(); applyWake(); } });
+  window.addEventListener('hashchange', () => { const c = location.hash.slice(1); if (c && c !== secret) start(c); });
+})();
+</script>
+</body>
+</html>
