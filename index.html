@@ -203,7 +203,10 @@
 <!-- ============ Einstellungen ============ -->
 <dialog id="dlgSettings">
   <div class="dlg">
-    <h2>Einstellungen</h2>
+    <div class="row" style="margin-bottom:12px">
+      <button type="button" id="settingsBack" aria-label="Zurück">← Zurück</button>
+      <h2 style="margin:0">Einstellungen</h2>
+    </div>
 
     <h3>Push-Alarm (ntfy)</h3>
     <p class="hint">App «ntfy» installieren und dieses Thema abonnieren. Dann klingelt es auch bei gesperrtem Handy.</p>
@@ -572,6 +575,7 @@ $('btnSettings').onclick = () => {
   $('dlgSettings').showModal();
 };
 $('settingsClose').onclick = () => $('dlgSettings').close();
+$('settingsBack').onclick = () => $('dlgSettings').close();
 $('btnNtfyCopy').onclick = () => state.topic && copy(state.topic, 'Thema kopiert');
 $('btnNtfyOpen').onclick = () => { if (state.topic) window.open(ntfyWeb(), '_blank', 'noopener'); };
 $('btnShareCopy').onclick = () => copy(shareLink(), 'Link kopiert');
